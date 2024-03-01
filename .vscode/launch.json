@@ -1,0 +1,51 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    {
+    "name": "rvc_application",
+    "request": "launch",
+    "type": "cppdbg",
+    "miDebuggerServerAddress": "localhost:3000",
+    "cwd": "/",
+    "program": "/home/zuyuan/ros2_ws/install/rvc_application/lib/rvc_application/rvc_application"
+    },
+    {
+    "name": "rvc_localizer",
+    "request": "launch",
+    "type": "cppdbg",
+    "miDebuggerServerAddress": "localhost:3000",
+    "cwd": "/",
+    "program": "/home/zuyuan/ros2_ws/install/rvc_localizer/lib/rvc_localizer/rvc_localizer_node"
+    }
+    ,
+    {
+    "name": "rvc_database",
+    "request": "launch",
+    "type": "cppdbg",
+    "miDebuggerServerAddress": "localhost:3000",
+    "cwd": "/",
+    "program": "/home/zuyuan/ros2_ws/install/rvc_database/lib/rvc_database/MapDBManager"
+    }
+    ,
+    {
+    "name": "slam_toolbox",
+    "request": "launch",
+    "type": "cppdbg",
+    "miDebuggerServerAddress": "localhost:3000",
+    "cwd": "/",
+    "program": "/home/zuyuan/ros2_ws/install/slam_toolbox/lib/slam_toolbox/map_and_localization_slam_toolbox_node"
+    }
+    ,
+    {
+    "name": "robot_localization",
+    "request": "launch",
+    "type": "cppdbg",
+    "miDebuggerServerAddress": "localhost:3000",
+    "cwd": "/",
+    "program": "/home/zuyuan/ros2_ws/install/robot_localization/lib/robot_localization/ekf_node"
+    }
+    ]
+}
