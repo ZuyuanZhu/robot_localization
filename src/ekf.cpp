@@ -36,6 +36,15 @@
 #include <Eigen/Dense>
 #include <rclcpp/duration.hpp>
 #include <vector>
+#include <iomanip> // For std::setprecision
+#include <iostream>
+
+// Print EKF pose info for debugging
+#define EKF_DEBUG 
+// ANSI color codes
+const std::string red("\033[1;31m");
+const std::string green("\033[1;32m");
+const std::string reset_color("\033[0m");
 
 namespace robot_localization
 {
@@ -208,6 +217,12 @@ void Ekf::correct(const Measurement & measurement)
 
     // Handle wrapping of angles
     wrapStateAngles();
+
+#ifdef EKF_DEBUG
+std::cout << green << "Corrected x position: " << std::setprecision(4) << state_(StateMemberX) 
+          << reset_color << "\n" << green << "Corrected y position: " << std::setprecision(4) << state_(StateMemberY) 
+          << reset_color << "\n" << std::endl;
+#endif
 
     FB_DEBUG(
       "Kalman gain subset is:\n" <<
@@ -419,6 +434,13 @@ void Ekf::predict(
 
   // (2) Project the state forward: x = Ax + Bu (really, x = f(x, u))
   state_ = transfer_function_ * state_;
+
+#ifdef EKF_DEBUG
+std::cout << red << "Predicted x position: " << std::setprecision(4) << state_(StateMemberX) 
+          << reset_color << "\n" << red << "Predicted y position: " << std::setprecision(4) << state_(StateMemberY) 
+          << reset_color << "\n" << std::endl;
+#endif
+
 
   // Handle wrapping
   wrapStateAngles();
