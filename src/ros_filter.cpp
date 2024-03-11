@@ -52,6 +52,17 @@
 #include <memory>
 #include <vector>
 
+// Print ROS_FILTER pose info for debugging
+// #define ROS_FILTER_DEBUG 
+// ANSI color codes
+const std::string red("\033[1;31m");
+const std::string green("\033[1;32m");
+const std::string blue("\033[1;34m");
+const std::string yellow("\033[1;33m");
+const std::string magenta("\033[1;35m");
+const std::string cyan("\033[1;36m");
+const std::string reset_color("\033[0m");
+
 namespace robot_localization
 {
 using namespace std::chrono_literals;
@@ -1814,6 +1825,18 @@ void RosFilter<T>::odometryCallback(
     "------ RosFilter<T>::odometryCallback (" <<
       topic_name << ") ------\n")         // << "Odometry message:\n" << *msg);
 
+#ifdef ROS_FILTER_DEBUG
+  std::cout << blue << "*** odometryCallback:" << std::endl;
+  std::cout << "topic_name: " << topic_name << std::endl;
+  std::cout << "msg->header.frame_id: " << msg->header.frame_id << std::endl;
+  std::cout << "msg->header.child_frame_id: " << msg->child_frame_id << std::endl;
+  std::cout << "Position (x, y, z): "
+            << msg->pose.pose.position.x << ", "
+            << msg->pose.pose.position.y << ", "
+            << msg->pose.pose.position.z
+            << reset_color << "\n" << std::endl;
+#endif
+
   if (pose_callback_data.update_sum_ > 0) {
     // Grab the pose portion of the message and pass it to the poseCallback
     geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr pos_ptr =
@@ -1903,6 +1926,22 @@ void RosFilter<T>::poseCallback(
         topic_name, measurement, measurement_covariance,
         update_vector_corrected,
         callback_data.rejection_threshold_, msg->header.stamp);
+
+// #ifdef ROS_FILTER_DEBUG
+//       std::cout << yellow << topic_name << "- poseCallback x position: " << std::setprecision(4) << state_(StateMemberX) 
+//                 << reset_color << yellow << topic_name << "- poseCallback y position: " << std::setprecision(4) << state_(StateMemberY) 
+//                 << reset_color << "\n" << std::endl;
+// #endif
+// #ifdef ROS_FILTER_DEBUG
+//       std::cout << yellow << "poseCallback:" << std::endl;
+//       std::cout << "topic_name: " << topic_name << std::endl;
+//       std::cout << "msg->header.frame_id: " << msg->header.frame_id << std::endl;
+//       std::cout << "Position (x, y, z): "
+//                 << msg->pose.pose.position.x << ", "
+//                 << msg->pose.pose.position.y << ", "
+//                 << msg->pose.pose.position.z
+//                 << reset_color << "\n" << std::endl;
+// #endif
 
       RF_DEBUG("Enqueued new measurement for " << topic_name << "\n");
     } else {
@@ -2062,11 +2101,25 @@ void RosFilter<T>::periodicUpdate()
     corrected_data = (!permit_corrected_publication_ &&
       last_published_stamp_ >= filtered_position->header.stamp);
 
+// #ifdef ROS_FILTER_DEBUG
+//       std::cout << red << "periodicUpdate:" << std::endl;
+//       std::cout << "filtered_position header frame_id: " << filtered_position->header.frame_id << std::endl;
+//       std::cout << "odom_frame_id_: " << odom_frame_id_ << std::endl;
+//       std::cout << "map_frame_id_: " << map_frame_id_ << std::endl;
+//       std::cout << reset_color << "\n" << std::endl;
+// #endif
+
     // If the world_frame_id_ is the odom_frame_id_ frame, then we can just
     // send the transform. If the world_frame_id_ is the map_frame_id_ frame,
     // we'll have some work to do.
     if (publish_transform_ && !corrected_data) {
-      if (filtered_position->header.frame_id == odom_frame_id_) {
+      if (filtered_position->header.frame_id == odom_frame_id_) {  // header.frame_id is "custom_odom"
+
+// #ifdef ROS_FILTER_DEBUG 
+//         RCLCPP_INFO(this->get_logger(), "Publishing transform from '%s' to '%s'", world_base_link_trans_msg_.header.frame_id.c_str(), world_base_link_trans_msg_.child_frame_id.c_str());
+//         RCLCPP_INFO(this->get_logger(), "Translation: x=%f, y=%f, z=%f", world_base_link_trans_msg_.transform.translation.x, world_base_link_trans_msg_.transform.translation.y, world_base_link_trans_msg_.transform.translation.z);
+//         // RCLCPP_INFO(this->get_logger(), "Rotation: x=%f, y=%f, z=%f, w=%f", world_base_link_trans_msg_.transform.rotation.x, world_base_link_trans_msg_.transform.rotation.y, world_base_link_trans_msg_.transform.rotation.z, world_base_link_trans_msg_.transform.rotation.w);
+// #endif
         world_transform_broadcaster_->sendTransform(world_base_link_trans_msg_);
       } else if (filtered_position->header.frame_id == map_frame_id_) {
         try {
@@ -2117,6 +2170,15 @@ void RosFilter<T>::periodicUpdate()
           map_odom_trans_msg.header.frame_id = map_frame_id_;
           map_odom_trans_msg.child_frame_id = odom_frame_id_;
 
+#ifdef ROS_FILTER_DEBUG
+          std::cout << green << "[not triggered]Publishing transform from '" << map_odom_trans_msg.header.frame_id 
+                    << "' to '" << map_odom_trans_msg.child_frame_id << "'" << std::endl;
+          std::cout << "Translation: x=" << map_odom_trans_msg.transform.translation.x 
+                    << ", y=" << map_odom_trans_msg.transform.translation.y 
+                    << ", z=" << map_odom_trans_msg.transform.translation.z << std::endl;
+          std::cout << reset_color << "\n" << std::endl;
+#endif
+
           world_transform_broadcaster_->sendTransform(map_odom_trans_msg);
         } catch (...) {
           // ROS_ERROR_STREAM_DELAYED_THROTTLE(5.0, "Could not obtain
@@ -2136,6 +2198,18 @@ void RosFilter<T>::periodicUpdate()
 
     // Fire off the position and the transform
     if (!corrected_data) {
+
+#ifdef ROS_FILTER_DEBUG
+      std::cout << yellow << "Publishing Odometry Message:" << std::endl;
+      std::cout << "Header frame_id: " << filtered_position->header.frame_id << std::endl;
+      std::cout << "Child frame_id: " << filtered_position->child_frame_id << std::endl;
+      std::cout << "Position (x, y, z): "
+                << filtered_position->pose.pose.position.x << ", "
+                << filtered_position->pose.pose.position.y << ", "
+                << filtered_position->pose.pose.position.z << std::endl;
+      std::cout << reset_color << "\n" << std::endl;
+#endif
+
       position_pub_->publish(std::move(filtered_position));
     }
 
@@ -2740,6 +2814,13 @@ bool RosFilter<T>::preparePose(
     "Final target frame for " << topic_name << " is " <<
       final_target_frame << "\n");
 
+
+// #ifdef ROS_FILTER_DEBUG
+//   std::cout << "Prepare position:" << std::endl;
+//   std::cout << red << "Final target frame for " << topic_name << " is " <<
+//       final_target_frame << reset_color << "\n" << std::endl;
+// #endif
+
   pose_tmp.stamp_ = tf2::timeFromSec(
     static_cast<double>(msg->header.stamp.sec) +
     static_cast<double>(msg->header.stamp.sec) / 1000000000.0);
@@ -2750,6 +2831,15 @@ bool RosFilter<T>::preparePose(
       msg->pose.pose.position.x,
       msg->pose.pose.position.y,
       msg->pose.pose.position.z));
+
+// #ifdef ROS_FILTER_DEBUG
+//   std::cout << red << "Position (x, y, z): "
+//             << msg->pose.pose.position.x << ", "
+//             << msg->pose.pose.position.y << ", "
+//             << msg->pose.pose.position.z
+//             << reset_color << "\n" << std::endl;
+// #endif
+
 
   tf2::Quaternion orientation;
 
@@ -2952,6 +3042,10 @@ bool RosFilter<T>::preparePose(
     if (differential) {
       bool success = false;
 
+// #ifdef ROS_FILTER_DEBUG
+//       std::cout << "differential:" << std::endl;
+// #endif
+
       // We're going to be playing with pose_tmp, so store it,
       // as we'll need to save its current value for the next
       // measurement.
@@ -3072,6 +3166,9 @@ bool RosFilter<T>::preparePose(
     } else {
       // 7g. If we're in relative mode, remove the initial measurement
       if (relative) {
+// #ifdef ROS_FILTER_DEBUG
+//         std::cout << "relative:" << std::endl;
+// #endif
         if (initial_measurements_.count(topic_name) == 0) {
           initial_measurements_.insert(
             std::pair<std::string, tf2::Transform>(topic_name, pose_tmp));
@@ -3090,6 +3187,24 @@ bool RosFilter<T>::preparePose(
       measurement(StateMemberX) = pose_tmp.getOrigin().x();
       measurement(StateMemberY) = pose_tmp.getOrigin().y();
       measurement(StateMemberZ) = pose_tmp.getOrigin().z();
+
+      // std::cout << "Prepare x position: " << pose_tmp.getOrigin().x() << std::endl;
+
+// #ifdef ROS_FILTER_DEBUG
+//       std::cout << green << "Prepare x position: " << std::setprecision(4) << measurement(StateMemberX) 
+//                 << reset_color << "\n" << green << "Prepare y position: " << std::setprecision(4) << measurement(StateMemberY) 
+//                 << reset_color << "\n" << std::endl;
+// #endif
+
+// #ifdef ROS_FILTER_DEBUG
+//       // std::cout << "Prepare position:" << std::endl;
+//       std::cout << red << "pose_tmp.frame_id_: " << pose_tmp.frame_id_ << std::endl;
+//       std::cout << "Position (x, y, z): "
+//                 << measurement(StateMemberX) << ", "
+//                 << measurement(StateMemberY) << ", "
+//                 << measurement(StateMemberZ)
+//                 << reset_color << "\n" << std::endl;
+// #endif
 
       // The filter needs roll, pitch, and yaw values instead of quaternions
       double roll, pitch, yaw;
